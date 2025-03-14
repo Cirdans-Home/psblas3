@@ -763,7 +763,7 @@ program psb_s_pde2d
          & desc_a,info,itmax=itmax,iter=iter,&
          & err=err,itrace=itrace,&
          & istop=istopc)
-  case('BICGSTAB','BICGSTABL','BICG','CG','CGS','FCG','GCR','RGMRES')
+  case('BICGSTAB','BICGSTABL','BICG','CG','CGS','FCG','GCR','RGMRES', 'SGMRES')
     call psb_krylov(kmethd,a,prec,bv,xxv,eps,&
          & desc_a,info,itmax=itmax,iter=iter,err=err,itrace=itrace,&
          & istop=istopc,irst=irst)
