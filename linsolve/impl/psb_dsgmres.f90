@@ -143,7 +143,7 @@ subroutine psb_dsgmres_vect(a,prec,b,x,eps,desc_a,info,&
   integer(psb_ipk_) :: np, me  
   Real(psb_dpk_)     :: rni, xni, bni, ani,bn2, dt, r0n2
   real(psb_dpk_)     :: errnum, errden, deps, derr, dnrm2
-  character(len=20)           :: name, output_filename
+  character(len=20)           :: name
   character(len=*), parameter :: methdname='SGMRES'
 
   info = psb_success_
@@ -245,7 +245,7 @@ subroutine psb_dsgmres_vect(a,prec,b,x,eps,desc_a,info,&
   if (info == psb_success_) call psb_geasb(w1,desc_a,info,mold=x%v)  
   if (info == psb_success_) call psb_geasb(xt,desc_a,info,mold=x%v)
 
-  ! Sketching: preallocate a Gaussian matrix that we will use for sketching.
+  ! Sketching: preallocate a Rademacher matrix that we will use for sketching.
   ! To ensure an epsilon-embedding, we select it twice as large as the maximum 
   ! number of iterations before a restart.
   nsketch = min(2 * (nl + 1), mglob)
