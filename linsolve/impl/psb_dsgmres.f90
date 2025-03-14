@@ -532,10 +532,14 @@ subroutine psb_dsgmres_vect_gen_sketch(SK, desc_a)
   real(psb_dpk_) :: dsqrt
  
   ! local variables
+  integer(psb_ipk_) :: err_act
+  character(len=20) :: name
   integer(psb_ipk_) :: nlr, i, j, info, n, nsketch
   real(psb_dpk_), allocatable :: val(:,:)
 
   integer(psb_lpk_), allocatable :: myidx(:)
+
+  name = 'psb_gen_sketch'
 
   myidx = desc_a%get_global_indices()
   nlr = size(myidx)
@@ -544,7 +548,9 @@ subroutine psb_dsgmres_vect_gen_sketch(SK, desc_a)
 
   allocate(val(n, nsketch), stat=info)
   if (info /= psb_success_) then
-    ! FIXME: Handle errors here
+    info = psb_err_alloc_dealloc_
+    call psb_errpush(info,name)
+    goto 9999
   end if
 
   do j = 1, nsketch
@@ -562,8 +568,16 @@ subroutine psb_dsgmres_vect_gen_sketch(SK, desc_a)
 
   call psb_geins(nlr, myidx, val, SK, desc_a, info)
   if (info /= psb_success_) then
-    ! FIXME: Handle errors here
+    info = psb_err_wrong_ins_
+    call psb_errpush(info,name)
+    goto 9999
   end if
 
   deallocate(val)
+
+  call psb_erractionrestore(err_act)
+  return
+
+9999 call psb_error_handler(err_act)
+  return
 end
