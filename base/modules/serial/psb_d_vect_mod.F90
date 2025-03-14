@@ -1423,9 +1423,9 @@ module psb_d_multivect_mod
     procedure, pass(x) :: dot_a    => d_mvect_dot_a
     procedure, pass(x) :: dot_vect => d_mvect_dot_vect
     generic, public    :: dot      => dot_v, dot_a, dot_vect
-!!$    procedure, pass(y) :: axpby_v  => d_mvect_axpby_v
-!!$    procedure, pass(y) :: axpby_a  => d_mvect_axpby_a
-!!$    generic, public    :: axpby    => axpby_v, axpby_a
+    procedure, pass(y) :: axpby_v  => d_mvect_axpby_v
+    procedure, pass(y) :: axpby_a  => d_mvect_axpby_a
+    generic, public    :: axpby    => axpby_v, axpby_a
 !!$    procedure, pass(y) :: mlt_v    => d_mvect_mlt_v
 !!$    procedure, pass(y) :: mlt_a    => d_mvect_mlt_a
 !!$    procedure, pass(z) :: mlt_a_2  => d_mvect_mlt_a_2
@@ -1953,37 +1953,37 @@ contains
     end if
 
   end function d_mvect_dot_a
-!!$
-!!$  subroutine d_mvect_axpby_v(m,alpha, x, beta, y, info)
-!!$    use psi_serial_mod
-!!$    implicit none
-!!$    integer(psb_ipk_), intent(in)               :: m
-!!$    class(psb_d_multivect_type), intent(inout)  :: x
-!!$    class(psb_d_multivect_type), intent(inout)  :: y
-!!$    real(psb_dpk_), intent (in)       :: alpha, beta
-!!$    integer(psb_ipk_), intent(out)              :: info
-!!$
-!!$    if (allocated(x%v).and.allocated(y%v)) then
-!!$      call y%v%axpby(m,alpha,x%v,beta,info)
-!!$    else
-!!$      info = psb_err_invalid_mvect_state_
-!!$    end if
-!!$
-!!$  end subroutine d_mvect_axpby_v
-!!$
-!!$  subroutine d_mvect_axpby_a(m,alpha, x, beta, y, info)
-!!$    use psi_serial_mod
-!!$    implicit none
-!!$    integer(psb_ipk_), intent(in)               :: m
-!!$    real(psb_dpk_), intent(in)        :: x(:)
-!!$    class(psb_d_multivect_type), intent(inout)  :: y
-!!$    real(psb_dpk_), intent (in)       :: alpha, beta
-!!$    integer(psb_ipk_), intent(out)              :: info
-!!$
-!!$    if (allocated(y%v)) &
-!!$         & call y%v%axpby(m,alpha,x,beta,info)
-!!$
-!!$  end subroutine d_mvect_axpby_a
+
+  subroutine d_mvect_axpby_v(m,alpha, x, beta, y, info)
+    use psi_serial_mod
+    implicit none
+    integer(psb_ipk_), intent(in)               :: m
+    class(psb_d_multivect_type), intent(inout)  :: x
+    class(psb_d_multivect_type), intent(inout)  :: y
+    real(psb_dpk_), intent (in)       :: alpha, beta
+    integer(psb_ipk_), intent(out)              :: info
+
+    if (allocated(x%v).and.allocated(y%v)) then
+      call y%v%axpby(m,alpha,x%v,beta,info)
+    else
+      info = psb_err_invalid_vect_state_
+    end if
+
+  end subroutine d_mvect_axpby_v
+
+  subroutine d_mvect_axpby_a(m,alpha, x, beta, y, info)
+    use psi_serial_mod
+    implicit none
+    integer(psb_ipk_), intent(in)               :: m
+    real(psb_dpk_), intent(in)        :: x(:,:)
+    class(psb_d_multivect_type), intent(inout)  :: y
+    real(psb_dpk_), intent (in)       :: alpha, beta
+    integer(psb_ipk_), intent(out)              :: info
+
+    if (allocated(y%v)) &
+         & call y%v%axpby(m,alpha,x,beta,info)
+
+  end subroutine d_mvect_axpby_a
 !!$
 !!$
 !!$  subroutine d_mvect_mlt_v(x, y, info)

@@ -162,6 +162,15 @@ module psb_d_psblas_mod
       integer(psb_ipk_), optional, intent(in) :: n, jx, jy
       integer(psb_ipk_), intent(out)      :: info
     end subroutine psb_daxpby
+    subroutine psb_daxpby_multi_vect(alpha, x, beta, y, desc_a, info)
+      import :: psb_d_multivect_type, psb_dpk_, psb_ipk_, &
+           & psb_desc_type
+      type(psb_d_multivect_type), intent (inout) ::  x
+      type(psb_d_multivect_type), intent (inout) ::  y
+      real(psb_dpk_), intent (in)        :: alpha, beta
+      type(psb_desc_type), intent (in)      :: desc_a
+      integer(psb_ipk_), intent(out)                  :: info
+    end subroutine psb_daxpby_multi_vect
   end interface
 
   interface psb_upd_xyz

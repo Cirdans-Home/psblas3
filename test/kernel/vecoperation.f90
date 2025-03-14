@@ -506,6 +506,34 @@ program vecoperation
     if(hasitnotfailed) write(psb_out_unit,'("TEST PASSED >>> Constant multivector ")')
     if(.not.hasitnotfailed) write(psb_out_unit,'("TEST FAILED --- Constant multivector ")')
   end if
+  ! X = 1 , Y = -2, Y = X + Y = 1 -2 = -1
+  call psb_d_gen_const_multi(mv1,one,idim,nmv,ctxt,desc_a,info)
+  call psb_d_gen_const_multi(mv2,negativetwo,idim,nmv,ctxt,desc_a,info)
+  call psb_geaxpby(one,mv1,one,mv2,desc_a,info)
+  hasitnotfailed = psb_check_ans(mv2,negativeone,ctxt)
+  if (iam == psb_root_) then
+    if(hasitnotfailed) write(psb_out_unit,'("TEST PASSED >>> axpby Y = X + Y")')
+    if(.not.hasitnotfailed) write(psb_out_unit,'("TEST FAILED --- axpby Y = X + Y ")')
+  end if
+  ! X = 1 , Y =  2, Y = -X + Y = -1 +2 = 1
+  call psb_d_gen_const_multi(mv1,one,idim,nmv,ctxt,desc_a,info)
+  call psb_d_gen_const_multi(mv2,two,idim,nmv,ctxt,desc_a,info)
+  call psb_geaxpby(negativeone,mv1,one,mv2,desc_a,info)
+  hasitnotfailed = psb_check_ans(mv2,one,ctxt)
+  if (iam == psb_root_) then
+    if(hasitnotfailed) write(psb_out_unit,'("TEST PASSED >>> axpby Y = -X + Y")')
+    if(.not.hasitnotfailed) write(psb_out_unit,'("TEST FAILED --- axpby Y = -X + Y ")')
+  end if
+  ! X = 2 , Y =  -2, Y = 0.5*X + Y = 1 - 2 = -1
+  call psb_d_gen_const_multi(mv1,two,idim,nmv,ctxt,desc_a,info)
+  call psb_d_gen_const_multi(mv2,negativetwo,idim,nmv,ctxt,desc_a,info)
+  call psb_geaxpby(onehalf,mv1,one,mv2,desc_a,info)
+  hasitnotfailed = psb_check_ans(mv2,negativeone,ctxt)
+  if (iam == psb_root_) then
+    if(hasitnotfailed) write(psb_out_unit,'("TEST PASSED >>> axpby Y = 0.5 X + Y")')
+    if(.not.hasitnotfailed) write(psb_out_unit,'("TEST FAILED --- axpby Y = 0.5 X + Y ")')
+  end if
+  
 
   ! 
   ! Multivector to field operation
