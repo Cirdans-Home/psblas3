@@ -141,8 +141,8 @@ subroutine psb_dsgmres_vect(a,prec,b,x,eps,desc_a,info,&
   integer(psb_ipk_) :: debug_level, debug_unit
   type(psb_ctxt_type) :: ctxt
   integer(psb_ipk_) :: np, me  
-  Real(psb_dpk_)     :: rni, xni, bni, ani,bn2, dt, r0n2
-  real(psb_dpk_)     :: errnum, errden, deps, derr, dnrm2
+  Real(psb_dpk_)     :: rni, xni, bni, ani,bn2, dt, r0n2, bns2, rns2
+  real(psb_dpk_)     :: errnum, errden, deps, derr, dnrm2, t1, t2
   character(len=20)           :: name
   character(len=*), parameter :: methdname='SGMRES'
 
@@ -174,14 +174,14 @@ subroutine psb_dsgmres_vect(a,prec,b,x,eps,desc_a,info,&
   if (present(istop)) then 
     istop_ = istop 
   else
-    istop_ = 2
+    istop_ = 4
   endif
 !
 !  ISTOP_ = 1:  Normwise backward error, infinity norm 
 !  ISTOP_ = 2:  ||r||/||b||, 2-norm 
 !
 
-  if ((istop_ < 1 ).or.(istop_ > 2 ) ) then
+  if ((istop_ < 1 ).or.(istop_ > 4 ) ) then
     info=psb_err_invalid_istop_
     err=info
     call psb_errpush(info,name,i_err=(/istop_/))
@@ -248,11 +248,16 @@ subroutine psb_dsgmres_vect(a,prec,b,x,eps,desc_a,info,&
   ! Sketching: preallocate a Rademacher matrix that we will use for sketching.
   ! To ensure an epsilon-embedding, we select it twice as large as the maximum 
   ! number of iterations before a restart.
+  t1 = psb_wtime()
   nsketch = min(2 * (nl + 1), mglob)
   korth = 1
   if (info == psb_success_) call psb_geall(SK,desc_a,info,n=nsketch)
   call psb_dsgmres_vect_gen_sketch(SK, desc_a)
-
+  t2 = psb_wtime() - t1
+  call psb_max(ctxt, t2)
+  if (me == psb_root_) then
+    print *, 'Generation of sketching time: ', t2
+  end if
   allocate(Sb(nsketch), SKAV(nsketch, nl), Sb2(nsketch), SKAV2(nsketch, nl), stat=info)
 
   if (info /= psb_success_) then 
@@ -286,6 +291,10 @@ subroutine psb_dsgmres_vect(a,prec,b,x,eps,desc_a,info,&
       goto 9999
     end if
     r0n2 = psb_genrm2(v(1),desc_a,info)
+  else if (istop_ == 4) then
+    ! FIXME: What to do in the skecthed case?
+    Sb = psb_gedot(SK, b, desc_a, info)
+    bns2 = dnrm2(nsketch, Sb, ione)
   endif
   errnum = dzero
   errden = done
@@ -323,9 +332,8 @@ subroutine psb_dsgmres_vect(a,prec,b,x,eps,desc_a,info,&
 
     ! Sketch r0, store ||Sro|| as the first residual norm
     Sb = psb_gedot(SK, v(1), desc_a, info)
-    rs(1) = dnrm2(nsketch, Sb, ione)
-    rs(2:) = dzero
-    scal = done/rs(1)
+    rns2 = dnrm2(nsketch, Sb, ione)
+    scal = done/rns2
     ! scal = done / psb_genrm2(v(1), desc_a, info)
 
     if (info /= psb_success_) then 
@@ -354,6 +362,11 @@ subroutine psb_dsgmres_vect(a,prec,b,x,eps,desc_a,info,&
       rni = psb_genrm2(v(1),desc_a,info)
       errnum = rni
       errden = r0n2
+    else if (istop_ == 4) then
+      ! Check if these are the right values
+      rni = dnrm2(nsketch, Sb, ione)
+      errnum = rni
+      errden = bns2
     endif
     if (info /= psb_success_) then 
       info=psb_err_from_subroutine_non_ 
@@ -378,7 +391,13 @@ subroutine psb_dsgmres_vect(a,prec,b,x,eps,desc_a,info,&
       call psb_spmm(done,a,w1,dzero,w,desc_a,info,work=aux)
       
       ! Sketch the action of the operator
+      t1 = psb_wtime()
       SKAV(:, i) = psb_gedot(SK, w, desc_a, info)
+      t2 = psb_wtime() - t1
+      call psb_max(ctxt, t2)
+      if (me == psb_root_) then
+        print *, 'Sketching time: ', t2
+      end if
 
       ! Only partial reorthogonalization is done in the sketched variant
       do k = max(1, i - korth), i
@@ -406,7 +425,7 @@ subroutine psb_dsgmres_vect(a,prec,b,x,eps,desc_a,info,&
 
       rs(1:i) = Sb2(1:i)
       rst(1:i) = rs(1:i)
-      rni = dnrm2(nsketch - i, Sb2(i+1 : nsketch), ione)
+      
       
       if (istop_ == 1) then
         !
@@ -440,6 +459,10 @@ subroutine psb_dsgmres_vect(a,prec,b,x,eps,desc_a,info,&
         !
         errnum = rni
         errden = r0n2
+      else if (istop_ == 4) then
+        rni = dnrm2(nsketch - i, Sb2(i+1 : nsketch), ione)
+        errnum = rni
+        errden = bns2
       endif
 
       if (errnum <= eps*errden) then 
@@ -447,7 +470,7 @@ subroutine psb_dsgmres_vect(a,prec,b,x,eps,desc_a,info,&
         if (istop_ == 1) then 
           call psb_geaxpby(done,xt,dzero,x,desc_a,info)
 ! =          x = xt 
-        else if (istop_ == 2) then
+        else if ((istop_ == 2) .or. (istop_ == 4)) then
           !
           ! build x
           !
@@ -472,7 +495,7 @@ subroutine psb_dsgmres_vect(a,prec,b,x,eps,desc_a,info,&
 
     if (istop_ == 1) then 
       call psb_geaxpby(done,xt,dzero,x,desc_a,info)!      x = xt 
-    else if (istop_ == 2) then
+    else if ((istop_ == 2) .or. (istop_ == 4)) then
       !
       ! build x
       !
@@ -553,9 +576,10 @@ subroutine psb_dsgmres_vect_gen_sketch(SK, desc_a)
     goto 9999
   end if
 
+  call random_number(val)
   do j = 1, nsketch
     do i = 1, n
-      call random_number(val(i,j))
+      ! call random_number(val(i,j))
         if (val(i,j) .gt. 0.5) then
           val(i,j) = done
         else

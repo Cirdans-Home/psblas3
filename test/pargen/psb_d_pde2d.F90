@@ -627,7 +627,7 @@ program psb_d_pde2d
   ! solver parameters
   integer(psb_ipk_) :: iter, itmax,itrace, istopc, irst, ipart
   integer(psb_epk_) :: amatsize, precsize, descsize, d2size
-  real(psb_dpk_)   :: err, eps
+  real(psb_dpk_)   :: err, eps, rnrm2
 
   ! Parameters for solvers in Block-Jacobi preconditioner
   type ainvparms
@@ -763,7 +763,7 @@ program psb_d_pde2d
          & desc_a,info,itmax=itmax,iter=iter,&
          & err=err,itrace=itrace,&
          & istop=istopc)
-  case('BICGSTAB','BICGSTABL','BICG','CG','CGS','FCG','GCR','RGMRES', 'SGMRES')
+  case('BICGSTAB','BICGSTABL','BICG','CG','CGS','FCG','GCR','RGMRES','SGMRES')
     call psb_krylov(kmethd,a,prec,bv,xxv,eps,&
          & desc_a,info,itmax=itmax,iter=iter,err=err,itrace=itrace,&
          & istop=istopc,irst=irst)
@@ -777,6 +777,22 @@ program psb_d_pde2d
   if(info /= psb_success_) then
     info=psb_err_from_subroutine_
     ch_err='solver routine'
+    call psb_errpush(info,name,a_err=ch_err)
+    goto 9999
+  end if
+
+  rnrm2 = psb_genrm2(bv,desc_a,info)  
+  if (info /= psb_success_) then
+    info=psb_err_from_subroutine_
+    ch_err='nrm2 routine'
+    call psb_errpush(info,name,a_err=ch_err)
+    goto 9999
+  end if
+  call psb_spmm(-done,a,xxv,done,bv,desc_a,info)
+  rnrm2 = psb_genrm2(bv,desc_a,info) / rnrm2
+  if (info /= psb_success_) then
+    info=psb_err_from_subroutine_
+    ch_err='nrm2 routine'
     call psb_errpush(info,name,a_err=ch_err)
     goto 9999
   end if
@@ -802,6 +818,7 @@ program psb_d_pde2d
     write(psb_out_unit,'("Time per iteration            : ",es12.5)')t2/iter
     write(psb_out_unit,'("Number of iterations          : ",i12)')iter
     write(psb_out_unit,'("Convergence indicator on exit : ",es12.5)')err
+    write(psb_out_unit,'("Residual norm                 : ",es12.5)')rnrm2
     write(psb_out_unit,'("Info  on exit                 : ",i12)')info
     write(psb_out_unit,'("Total memory occupation for      A: ",i12)')amatsize
     write(psb_out_unit,'("Total memory occupation for   PREC: ",i12)')precsize
