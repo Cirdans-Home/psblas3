@@ -437,7 +437,8 @@ contains
 
   subroutine l_vect_gthab(n,idx,alpha,x,beta,y)
     use psi_serial_mod
-    integer(psb_ipk_) :: n, idx(:)
+    integer(psb_mpk_) :: n
+    integer(psb_ipk_) :: idx(:)
     integer(psb_lpk_) :: alpha, beta, y(:)
     class(psb_l_vect_type) :: x
 
@@ -448,7 +449,8 @@ contains
 
   subroutine l_vect_gthzv(n,idx,x,y)
     use psi_serial_mod
-    integer(psb_ipk_) :: n, idx(:)
+    integer(psb_mpk_) :: n
+    integer(psb_ipk_) :: idx(:)
     integer(psb_lpk_) ::  y(:)
     class(psb_l_vect_type) :: x
 
@@ -459,7 +461,8 @@ contains
 
   subroutine l_vect_sctb(n,idx,x,beta,y)
     use psi_serial_mod
-    integer(psb_ipk_) :: n, idx(:)
+    integer(psb_mpk_) :: n
+    integer(psb_ipk_) :: idx(:)
     integer(psb_lpk_) :: beta, x(:)
     class(psb_l_vect_type) :: y
 
@@ -1040,7 +1043,8 @@ contains
 
   subroutine l_mvect_gthab(n,idx,alpha,x,beta,y)
     use psi_serial_mod
-    integer(psb_ipk_) :: n, idx(:)
+    integer(psb_mpk_) :: n
+    integer(psb_ipk_) :: idx(:)
     integer(psb_lpk_) :: alpha, beta, y(:)
     class(psb_l_multivect_type) :: x
 
@@ -1051,7 +1055,8 @@ contains
 
   subroutine l_mvect_gthzv(n,idx,x,y)
     use psi_serial_mod
-    integer(psb_ipk_) :: n, idx(:)
+    integer(psb_mpk_) :: n
+    integer(psb_ipk_) :: idx(:)
     integer(psb_lpk_) ::  y(:)
     class(psb_l_multivect_type) :: x
 
@@ -1062,7 +1067,8 @@ contains
 
   subroutine l_mvect_gthzv_x(i,n,idx,x,y)
     use psi_serial_mod
-    integer(psb_ipk_) :: i,n
+    integer(psb_mpk_) :: n
+    integer(psb_ipk_) :: i
     class(psb_i_base_vect_type) :: idx
     integer(psb_lpk_) ::  y(:)
     class(psb_l_multivect_type) :: x
@@ -1074,7 +1080,8 @@ contains
 
   subroutine l_mvect_sctb(n,idx,x,beta,y)
     use psi_serial_mod
-    integer(psb_ipk_) :: n, idx(:)
+    integer(psb_mpk_) :: n
+    integer(psb_ipk_) :: idx(:)
     integer(psb_lpk_) :: beta, x(:)
     class(psb_l_multivect_type) :: y
 
@@ -1085,7 +1092,8 @@ contains
 
   subroutine l_mvect_sctb_x(i,n,idx,x,beta,y)
     use psi_serial_mod
-    integer(psb_ipk_) :: i, n
+    integer(psb_mpk_) :: n
+    integer(psb_ipk_) :: i
     class(psb_i_base_vect_type) :: idx
     integer(psb_lpk_) :: beta, x(:)
     class(psb_l_multivect_type) :: y
