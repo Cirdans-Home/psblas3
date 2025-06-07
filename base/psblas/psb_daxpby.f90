@@ -161,7 +161,7 @@ integer(psb_ipk_), intent(out)                  :: info
 type(psb_ctxt_type) :: ctxt
 integer(psb_ipk_) :: np, me,&
     & err_act, iix, jjx, iiy, jjy
-integer(psb_lpk_) :: ix, ijx, iy, ijy, m
+integer(psb_lpk_) :: ix, ijx, iy, ijy, m, ncol
 character(len=20)        :: name, ch_err
 
 name='psb_dgeaxpby'
@@ -195,14 +195,16 @@ iy = ione
 m = desc_a%get_global_rows()
 
 ! check vector correctness
-call psb_chkvect(m,x%get_ncols(),x%get_nrows(),ix,lone,desc_a,info,iix,jjx)
+ncol = x%get_ncols()
+call psb_chkvect(m,ncol,x%get_nrows(),ix,lone,desc_a,info,iix,jjx)
 if(info /= psb_success_) then
  info=psb_err_from_subroutine_
  ch_err='psb_chkvect 1'
  call psb_errpush(info,name,a_err=ch_err)
  goto 9999
 end if
-call psb_chkvect(m,y%get_ncols(),y%get_nrows(),iy,lone,desc_a,info,iiy,jjy)
+ncol = y%get_ncols()
+call psb_chkvect(m,ncol,y%get_nrows(),iy,lone,desc_a,info,iiy,jjy)
 if(info /= psb_success_) then
  info=psb_err_from_subroutine_
  ch_err='psb_chkvect 2'

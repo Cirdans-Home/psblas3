@@ -1426,6 +1426,9 @@ module psb_d_multivect_mod
     procedure, pass(y) :: axpby_v  => d_mvect_axpby_v
     procedure, pass(y) :: axpby_a  => d_mvect_axpby_a
     generic, public    :: axpby    => axpby_v, axpby_a
+    procedure, pass(x) :: trslv    => d_mlv_trslv
+    procedure, pass(x) :: mlt_mv2  => d_mvect_mlt_mv2
+    generic, public    :: mlt      => mlt_mv2
 !!$    procedure, pass(y) :: mlt_v    => d_mvect_mlt_v
 !!$    procedure, pass(y) :: mlt_a    => d_mvect_mlt_a
 !!$    procedure, pass(z) :: mlt_a_2  => d_mvect_mlt_a_2
@@ -1482,15 +1485,6 @@ contains
       x%dupl = psb_dupl_def_
     end if
   end subroutine d_mvect_set_dupl
-
-  subroutine d_mvect_sync(x)
-    implicit none
-    class(psb_d_multivect_type), intent(inout) :: x
-
-    if (allocated(x%v)) &
-         & call x%v%sync()
-
-  end subroutine d_mvect_sync
 
   subroutine d_mvect_set_sync(x)
     implicit none
@@ -1551,7 +1545,6 @@ contains
          & res =  x%v%is_dev()
 
   end function d_mvect_is_dev
-        
 
   function d_mvect_is_remote_build(x) result(res)
     implicit none
@@ -1795,6 +1788,15 @@ contains
 
   end subroutine d_mvect_asb
 
+  subroutine d_mvect_sync(x)
+    implicit none
+    class(psb_d_multivect_type), intent(inout) :: x
+
+    if (allocated(x%v)) &
+         & call x%v%sync()
+
+  end subroutine d_mvect_sync
+
   subroutine d_mvect_gthab(n,idx,alpha,x,beta,y)
     use psi_serial_mod
     integer(psb_ipk_) :: n, idx(:)
@@ -1912,7 +1914,7 @@ contains
   function d_mvect_dot_v(n,x,y) result(res)
     implicit none
     class(psb_d_multivect_type), intent(inout) :: x, y
-    integer(psb_ipk_), intent(in)           :: n
+    integer(psb_ipk_), intent(in)              :: n
     real(psb_dpk_), dimension(:), allocatable :: res
 
     if (allocated(x%v).and.allocated(y%v)) then 
@@ -1947,9 +1949,11 @@ contains
     integer(psb_ipk_), intent(in)           :: n
     real(psb_dpk_), dimension(:), allocatable :: res
 
-    res = dzero
     if (allocated(x%v)) then
-      res = x%v%dot(n,y)
+        res = x%v%dot(n,y)
+    else
+      allocate(res(1))
+      res(1) = psb_err_invalid_vect_state_
     end if
 
   end function d_mvect_dot_a
@@ -1984,6 +1988,74 @@ contains
          & call y%v%axpby(m,alpha,x,beta,info)
 
   end subroutine d_mvect_axpby_a
+
+  subroutine d_mlv_trslv(n,x,a,uplo,alpha,trans,diag,info)
+    implicit none
+    class(psb_d_multivect_type), intent(inout) :: x
+    real(psb_dpk_), intent(in)      :: a(:,:)
+    integer(psb_ipk_), intent(in)   :: n
+    character(len=1), intent(in)    :: uplo
+    real(psb_dpk_), intent(in), optional :: alpha
+    character(len=1), intent(in), optional :: trans, diag
+    integer(psb_ipk_), intent(out)  :: info
+    
+    if (.not.allocated(x%v)) then
+      info = psb_err_invalid_vect_state_
+      return
+    else
+      call x%v%trslv(n,a,uplo,alpha=alpha,trans=trans,diag=diag,info=info)
+    end if
+  end subroutine d_mlv_trslv
+
+  subroutine d_mvect_mlt_mv2(n,x,y,a,info)
+    use psi_serial_mod
+    implicit none
+    integer(psb_ipk_), intent(in)              :: n
+    class(psb_d_multivect_type), intent(inout) :: x
+    class(psb_d_multivect_type), intent(inout) :: y
+    real(psb_dpk_), intent(inout), allocatable :: a(:,:)
+    integer(psb_ipk_), intent(out)             :: info
+
+    if (allocated(x%v).and.allocated(y%v)) then
+      call y%v%mlt(n,x%v,a,info)
+    else
+      info = psb_err_invalid_vect_state_
+      return
+    end if
+
+  end subroutine d_mvect_mlt_mv2
+
+
+!!$  subroutine d_mvect_axpby_v(m,alpha, x, beta, y, info)
+!!$    use psi_serial_mod
+!!$    implicit none
+!!$    integer(psb_ipk_), intent(in)               :: m
+!!$    class(psb_d_multivect_type), intent(inout)  :: x
+!!$    class(psb_d_multivect_type), intent(inout)  :: y
+!!$    real(psb_dpk_), intent (in)       :: alpha, beta
+!!$    integer(psb_ipk_), intent(out)              :: info
+!!$
+!!$    if (allocated(x%v).and.allocated(y%v)) then
+!!$      call y%v%axpby(m,alpha,x%v,beta,info)
+!!$    else
+!!$      info = psb_err_invalid_mvect_state_
+!!$    end if
+!!$
+!!$  end subroutine d_mvect_axpby_v
+!!$
+!!$  subroutine d_mvect_axpby_a(m,alpha, x, beta, y, info)
+!!$    use psi_serial_mod
+!!$    implicit none
+!!$    integer(psb_ipk_), intent(in)               :: m
+!!$    real(psb_dpk_), intent(in)        :: x(:)
+!!$    class(psb_d_multivect_type), intent(inout)  :: y
+!!$    real(psb_dpk_), intent (in)       :: alpha, beta
+!!$    integer(psb_ipk_), intent(out)              :: info
+!!$
+!!$    if (allocated(y%v)) &
+!!$         & call y%v%axpby(m,alpha,x,beta,info)
+!!$
+!!$  end subroutine d_mvect_axpby_a
 !!$
 !!$
 !!$  subroutine d_mvect_mlt_v(x, y, info)

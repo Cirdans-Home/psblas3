@@ -31,8 +31,8 @@
 !
 module psb_d_psblas_mod
   use psb_desc_mod, only : psb_desc_type, psb_dpk_, psb_ipk_, psb_lpk_
-  use psb_d_vect_mod, only : psb_d_vect_type
   use psb_d_multivect_mod, only : psb_d_multivect_type
+  use psb_d_vect_mod, only : psb_d_vect_type
   use psb_d_mat_mod, only : psb_dspmat_type
 
   interface psb_gedot
@@ -218,7 +218,7 @@ module psb_d_psblas_mod
     end function psb_damax_vect
   end interface
 
-#if ! defined(HAVE_BUGGY_GENERICS)
+#if ! defined(PSB_HAVE_BUGGY_GENERICS)
   interface psb_genrmi
     procedure psb_damax, psb_damaxv, psb_damax_vect
   end interface
@@ -313,7 +313,7 @@ module psb_d_psblas_mod
     end subroutine psb_dmasum
   end interface
 
-#if ! defined(HAVE_BUGGY_GENERICS)
+#if ! defined(PSB_HAVE_BUGGY_GENERICS)
   interface psb_genrm1
     procedure psb_dasum, psb_dasumv, psb_dasum_vect
   end interface
@@ -376,7 +376,7 @@ module psb_d_psblas_mod
     end function psb_dnrm2_weightmask_vect
   end interface
 
-#if ! defined(HAVE_BUGGY_GENERICS)
+#if ! defined(PSB_HAVE_BUGGY_GENERICS)
   interface psb_norm2
     procedure psb_dnrm2, psb_dnrm2v, psb_dnrm2_vect, psb_dnrm2_weight_vect, psb_dnrm2_weightmask_vect
   end interface
@@ -407,7 +407,7 @@ module psb_d_psblas_mod
     end function psb_dnrmi
   end interface
 
-#if ! defined(HAVE_BUGGY_GENERICS)
+#if ! defined(PSB_HAVE_BUGGY_GENERICS)
   interface psb_normi
     procedure psb_dnrmi
   end interface
@@ -425,7 +425,7 @@ module psb_d_psblas_mod
     end function psb_dspnrm1
   end interface
 
-#if ! defined(HAVE_BUGGY_GENERICS)
+#if ! defined(PSB_HAVE_BUGGY_GENERICS)
   interface psb_norm1
     procedure psb_dspnrm1
   end interface
@@ -549,6 +549,15 @@ module psb_d_psblas_mod
       integer(psb_ipk_), intent(out)        :: info
       character(len=1), intent(in), optional :: conjgx, conjgy
     end subroutine psb_dmlt_vect2
+    subroutine psb_dmlt_multivect(x, y, res, desc_a,info,global)
+      import :: psb_desc_type, psb_dpk_, psb_ipk_, &
+           & psb_d_multivect_type, psb_dspmat_type
+      real(psb_dpk_), dimension(:,:), allocatable, intent(inout) :: res
+      type(psb_d_multivect_type), intent(inout) :: x, y
+      type(psb_desc_type), intent(in)      :: desc_a
+      integer(psb_ipk_), intent(out)       :: info
+      logical, intent(in), optional        :: global
+    end subroutine psb_dmlt_multivect
   end interface
 
   interface psb_gediv
@@ -588,6 +597,18 @@ module psb_d_psblas_mod
       integer(psb_ipk_), intent(out)        :: info
       logical, intent(in)                   :: flag
     end subroutine psb_ddiv_vect2_check
+    subroutine psb_ddiv_trslv(x,a,desc_a,uplo,info,alpha,trans,diag)
+      import :: psb_desc_type, psb_ipk_, &
+           & psb_dpk_, psb_d_multivect_type
+      type(psb_d_multivect_type), intent (inout)  :: x
+      real(psb_dpk_), intent (in), dimension(:,:) :: a
+      type(psb_desc_type), intent (in)            :: desc_a
+      character(len=1), intent(in)                :: uplo
+      integer(psb_ipk_), intent(out)              :: info
+      real(psb_dpk_), intent (in), optional       :: alpha
+      character(len=1), intent(in), optional      :: trans
+      character(len=1), intent(in), optional      :: diag
+    end subroutine psb_ddiv_trslv
   end interface
 
   interface psb_geinv

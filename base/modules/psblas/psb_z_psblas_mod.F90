@@ -31,6 +31,7 @@
 !
 module psb_z_psblas_mod
   use psb_desc_mod, only : psb_desc_type, psb_dpk_, psb_ipk_, psb_lpk_
+  use psb_z_multivect_mod, only : psb_z_multivect_type
   use psb_z_vect_mod, only : psb_z_vect_type
   use psb_z_mat_mod, only : psb_zspmat_type
 
@@ -63,6 +64,26 @@ module psb_z_psblas_mod
       integer(psb_ipk_), intent(out)     :: info
       logical, intent(in), optional      :: global
     end function psb_zdot
+    function psb_zdot_multivect(x, y, desc_a,info,global) result(res)
+      import :: psb_desc_type, psb_dpk_, psb_ipk_, &
+           & psb_z_multivect_type, psb_zspmat_type
+      complex(psb_dpk_), dimension(:), allocatable :: res
+      type(psb_z_multivect_type), intent(inout) :: x, y
+      type(psb_desc_type), intent(in)      :: desc_a
+      integer(psb_ipk_), intent(out)       :: info
+      logical, intent(in), optional        :: global
+    end function psb_zdot_multivect
+    function psb_zdot_mvect_vect(x, y, desc_a,info,global) result(res)
+      import :: psb_desc_type, psb_dpk_, psb_ipk_, &
+        & psb_z_multivect_type, psb_zspmat_type, &
+        & psb_z_vect_type
+      complex(psb_dpk_), dimension(:), allocatable :: res
+      type(psb_z_multivect_type), intent(inout) :: x
+      type(psb_z_vect_type), intent(inout) :: y
+      type(psb_desc_type), intent(in)      :: desc_a
+      integer(psb_ipk_), intent(out)       :: info
+      logical, intent(in), optional        :: global
+    end function psb_zdot_mvect_vect
   end interface
 
 
@@ -188,7 +209,7 @@ module psb_z_psblas_mod
     end function psb_zamax_vect
   end interface
 
-#if ! defined(HAVE_BUGGY_GENERICS)
+#if ! defined(PSB_HAVE_BUGGY_GENERICS)
   interface psb_genrmi
     procedure psb_zamax, psb_zamaxv, psb_zamax_vect
   end interface
@@ -272,7 +293,7 @@ module psb_z_psblas_mod
     end subroutine psb_zmasum
   end interface
 
-#if ! defined(HAVE_BUGGY_GENERICS)
+#if ! defined(PSB_HAVE_BUGGY_GENERICS)
   interface psb_genrm1
     procedure psb_zasum, psb_zasumv, psb_zasum_vect
   end interface
@@ -335,7 +356,7 @@ module psb_z_psblas_mod
     end function psb_znrm2_weightmask_vect
   end interface
 
-#if ! defined(HAVE_BUGGY_GENERICS)
+#if ! defined(PSB_HAVE_BUGGY_GENERICS)
   interface psb_norm2
     procedure psb_znrm2, psb_znrm2v, psb_znrm2_vect, psb_znrm2_weight_vect, psb_znrm2_weightmask_vect
   end interface
@@ -366,7 +387,7 @@ module psb_z_psblas_mod
     end function psb_znrmi
   end interface
 
-#if ! defined(HAVE_BUGGY_GENERICS)
+#if ! defined(PSB_HAVE_BUGGY_GENERICS)
   interface psb_normi
     procedure psb_znrmi
   end interface
@@ -384,7 +405,7 @@ module psb_z_psblas_mod
     end function psb_zspnrm1
   end interface
 
-#if ! defined(HAVE_BUGGY_GENERICS)
+#if ! defined(PSB_HAVE_BUGGY_GENERICS)
   interface psb_norm1
     procedure psb_zspnrm1
   end interface
@@ -508,6 +529,15 @@ module psb_z_psblas_mod
       integer(psb_ipk_), intent(out)        :: info
       character(len=1), intent(in), optional :: conjgx, conjgy
     end subroutine psb_zmlt_vect2
+    subroutine psb_zmlt_multivect(x, y, res, desc_a,info,global)
+      import :: psb_desc_type, psb_dpk_, psb_ipk_, &
+           & psb_z_multivect_type, psb_zspmat_type
+      complex(psb_dpk_), dimension(:,:), allocatable, intent(inout) :: res
+      type(psb_z_multivect_type), intent(inout) :: x, y
+      type(psb_desc_type), intent(in)      :: desc_a
+      integer(psb_ipk_), intent(out)       :: info
+      logical, intent(in), optional        :: global
+    end subroutine psb_zmlt_multivect
   end interface
 
   interface psb_gediv
@@ -547,6 +577,18 @@ module psb_z_psblas_mod
       integer(psb_ipk_), intent(out)        :: info
       logical, intent(in)                   :: flag
     end subroutine psb_zdiv_vect2_check
+    subroutine psb_zdiv_trslv(x,a,desc_a,uplo,info,alpha,trans,diag)
+      import :: psb_desc_type, psb_ipk_, &
+           & psb_dpk_, psb_z_multivect_type
+      type(psb_z_multivect_type), intent (inout)  :: x
+      complex(psb_dpk_), intent (in), dimension(:,:) :: a
+      type(psb_desc_type), intent (in)            :: desc_a
+      character(len=1), intent(in)                :: uplo
+      integer(psb_ipk_), intent(out)              :: info
+      complex(psb_dpk_), intent (in), optional       :: alpha
+      character(len=1), intent(in), optional      :: trans
+      character(len=1), intent(in), optional      :: diag
+    end subroutine psb_zdiv_trslv
   end interface
 
   interface psb_geinv

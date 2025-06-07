@@ -149,7 +149,8 @@ module psb_z_base_vect_mod
     !
     procedure, pass(x) :: dot_v    => z_base_dot_v
     procedure, pass(x) :: dot_a    => z_base_dot_a
-    generic, public    :: dot      => dot_v, dot_a
+    procedure, pass(x) :: dot_a2   => z_base_dot_a2
+    generic, public    :: dot      => dot_v, dot_a, dot_a2
     procedure, pass(y) :: axpby_v  => z_base_axpby_v
     procedure, pass(y) :: axpby_a  => z_base_axpby_a
     procedure, pass(z) :: axpby_v2  => z_base_axpby_v2
@@ -276,7 +277,7 @@ contains
       call psb_errpush(psb_err_alloc_dealloc_,'base_vect_bld')
       return
     end if
-#if defined (OPENMP)
+#if defined (PSB_OPENMP)
     !$omp parallel do private(i)
     do i = 1, size(this)
       x%v(i) = this(i)
@@ -841,7 +842,7 @@ contains
     if (present(last))  last_  = min(last,last_)
 
     if (x%is_dev()) call x%sync()
-#if defined(OPENMP)
+#if defined(PSB_OPENMP)
     !$omp parallel do private(i)
     do i = first_, last_        
       x%v(i) = val
@@ -879,7 +880,7 @@ contains
 
     if (x%is_dev()) call x%sync()
 
-#if defined(OPENMP)
+#if defined(PSB_OPENMP)
       !$omp parallel do private(i)
       do i  = first_, last_
         x%v(i) = val(i-first_+1)
@@ -928,7 +929,7 @@ contains
     
     if (allocated(x%v)) then
       if (x%is_dev()) call x%sync()
-#if defined(OPENMP)
+#if defined(PSB_OPENMP)
       !$omp parallel do private(i)
       do i=1, size(x%v)
         x%v(i) =  abs(x%v(i))
@@ -1009,6 +1010,34 @@ contains
     res = zdotc(n,y,1,x%v,1)
 
   end function z_base_dot_a
+
+  !
+  ! Base workhorse is good old BLAS2
+  !
+  !
+  !> Function  base_dot_a
+  !! \memberof  psb_d_base_vect_type
+  !! \brief  Dot product by a normal array
+  !! \param n    Number of entries to be considered
+  !! \param y(:,:) The matrix to be multiplied by
+  !!
+  function z_base_dot_a2(n,x,y) result(res)
+    implicit none
+    class(psb_z_base_vect_type), intent(inout) :: x
+    complex(psb_dpk_), intent(in)    :: y(:,:)
+    integer(psb_ipk_), intent(in)           :: n
+    complex(psb_dpk_), allocatable, dimension(:) :: res
+
+    ! local
+    integer(psb_ipk_) :: ncol
+
+    ncol = size(y,2)
+    allocate(res(ncol))
+    ! On the real cases the 'C' acts as a transpose, 
+    ! on the complex cases it is a conjugate transpose
+    call zgemv('C',n,ncol,zone,y,n,x%v,1,zzero,res,1)
+
+  end function z_base_dot_a2
 
   !
   ! AXPBY is invoked via Y, hence the structure below.
@@ -1735,7 +1764,7 @@ contains
     integer(psb_ipk_) :: i
 
     if (allocated(x%v)) then
-#if defined(OPENMP)
+#if defined(PSB_OPENMP)
       !$omp parallel do private(i)
       do i=1,size(x%v)
         x%v(i) = alpha*x%v(i)
@@ -1779,7 +1808,7 @@ contains
     integer(psb_ipk_) :: i
 
     if (x%is_dev()) call x%sync()
-#if defined(OPENMP)
+#if defined(PSB_OPENMP)
     res = dzero
     !$omp parallel do private(i) reduction(max: res)
     do i=1, n
@@ -1804,7 +1833,7 @@ contains
     integer(psb_ipk_) :: i
     
     if (x%is_dev()) call x%sync()
-#if defined(OPENMP)
+#if defined(PSB_OPENMP)
     res=dzero
     !$omp parallel do private(i) reduction(+: res)
     do i= 1, size(x%v)
@@ -2019,7 +2048,7 @@ contains
     integer(psb_ipk_) :: i, n
 
     if (z%is_dev()) call z%sync()
-#if defined(OPENMP)
+#if defined(PSB_OPENMP)
     n = size(x)
     !$omp parallel do private(i)
     do i = 1, n
@@ -2133,7 +2162,8 @@ module psb_z_base_multivect_mod
     !
     procedure, pass(x) :: dot_v    => z_base_mlv_dot_v
     procedure, pass(x) :: dot_a    => z_base_mlv_dot_a
-    generic, public    :: dot      => dot_v, dot_a
+    procedure, pass(x) :: dot_vect => z_base_mlv_dot_vect
+    generic, public    :: dot      => dot_v, dot_a, dot_vect
     procedure, pass(y) :: axpby_v  => z_base_mlv_axpby_v
     procedure, pass(y) :: axpby_a  => z_base_mlv_axpby_a
     generic, public    :: axpby    => axpby_v, axpby_a
@@ -2147,13 +2177,15 @@ module psb_z_base_multivect_mod
     procedure, pass(y) :: mlt_ar2  => z_base_mlv_mlt_ar2
     procedure, pass(z) :: mlt_a_2  => z_base_mlv_mlt_a_2
     procedure, pass(z) :: mlt_v_2  => z_base_mlv_mlt_v_2
+    procedure, pass(x) :: mlt_mv2  => z_base_mlv_mlt_mv2
 !!$    procedure, pass(z) :: mlt_va   => z_base_mlv_mlt_va
 !!$    procedure, pass(z) :: mlt_av   => z_base_mlv_mlt_av
     generic, public    :: mlt      => mlt_mv, mlt_mv_v, mlt_ar1, mlt_ar2, &
-         & mlt_a_2, mlt_v_2 !, mlt_av, mlt_va
+         & mlt_a_2, mlt_v_2, mlt_mv2 !, mlt_av, mlt_va
     !
     ! Scaling and norms
     !
+    procedure, pass(x) :: trslv    => z_base_mlv_trslv
     procedure, pass(x) :: scal     => z_base_mlv_scal
     procedure, pass(x) :: nrm2     => z_base_mlv_nrm2
     procedure, pass(x) :: amax     => z_base_mlv_amax
@@ -2643,6 +2675,70 @@ contains
   end function z_base_mlv_get_vect
 
   !
+  !> subroutine  d_base_mlv_trslv
+  !! \memberof  psb_d_base_multivect_type
+  !! \brief  Computes X = X / A with A an upper triangular matrix
+  !! \param n    Number of entries to be considered
+  !! \param x    The multivector to be used for the division
+  !! \param uplo  'U' for upper triangular, 'L' for lower triangular
+  !! \param a    The matrix to be used for the division
+  !! \param alpha (optional)  The scaling factor
+  !! \param trans (optional)  'N' for no transpose, 'T' for transpose
+  !! \param diag (optional)  'N' for non-unit diagonal, 'U' for unit diagonal
+  !! \param info return code
+  !!
+  subroutine z_base_mlv_trslv(n,x,a,uplo,alpha,trans,diag,info)
+    implicit none
+    class(psb_z_base_multivect_type), intent(inout) :: x
+    complex(psb_dpk_), intent(in)      :: a(:,:)
+    integer(psb_ipk_), intent(in)   :: n
+    character(len=1), intent(in)    :: uplo
+    complex(psb_dpk_), intent(in), optional :: alpha
+    character(len=1), intent(in), optional :: trans, diag
+    integer(psb_ipk_), intent(out)  :: info
+    ! Local variables
+    integer(psb_ipk_) :: lda, ldb
+    character(len=1) :: trans_, diag_, side
+    complex(psb_dpk_) :: alpha_
+    
+    ! Default values
+    if (.not.present(alpha)) then
+      alpha_ = zone
+    else
+      alpha_ = alpha
+    end if
+    if (.not.present(trans)) then
+      trans_ = 'N'
+    else 
+      trans_ = trans
+    end if
+    if (.not.present(diag)) then
+      diag_ = 'N'
+    else
+      diag_ = diag
+    end if
+
+    info = psb_success_
+    ! Check that a is square
+    if (size(a,1) /= size(a,2)) then
+      info = psb_err_invalid_input_
+      return
+    end if
+    ! Check that a has the same number of columns as x
+    if (size(a,2) /= x%get_ncols()) then
+      info = psb_err_invalid_input_
+      return
+    end if
+    if (x%is_dev()) call x%sync()
+    if (x%is_sync()) then
+      ! Call BLAS function to solve the system
+      lda = size(a,1)
+      ldb = x%get_nrows()
+      side = 'R'  ! X*op( A ) = alpha*B.
+      call dtrsm(side, uplo, trans_, diag_, n, x%get_ncols(), alpha_, a, lda, x%v, ldb)
+    end if
+  end subroutine z_base_mlv_trslv
+  !
   ! Reset all values
   !
   !
@@ -2754,6 +2850,36 @@ contains
 
   end function z_base_mlv_dot_a
 
+  !> Function  z_base_mlv_dot_vect
+  !! \memberof  psb_z_base_multivect_type
+  !! \brief  Dot product by a base_mlv_vector
+  !! \param n    Number of entries to be considered
+  !! \param y    The other (base_vect) to be multiplied by
+  !!
+  function z_base_mlv_dot_vect(n,x,y) result(res)
+    implicit none
+    class(psb_z_base_multivect_type), intent(inout) :: x
+    class(psb_z_base_vect_type), intent(inout) :: y
+    integer(psb_ipk_), intent(in)           :: n
+    complex(psb_dpk_), allocatable   :: res(:)
+    complex(psb_dpk_), external      :: zdotc
+    integer(psb_ipk_) :: j,nc
+
+    if (x%is_dev()) call x%sync()
+
+    select type(yy => y)
+    type is (psb_z_base_vect_type)
+      nc = psb_size(x%v,2_psb_ipk_)
+      allocate(res(nc))
+      do j=1,nc
+        res(j) = zdotc(n,x%v(:,j),1,y%v,1)
+      end do
+    class default
+      res = y%dot(n,x%v)
+    end select
+
+  end function z_base_mlv_dot_vect
+
   !
   ! AXPBY is invoked via Y, hence the structure below.
   !
@@ -2826,6 +2952,48 @@ contains
 
   end subroutine z_base_mlv_axpby_a
 
+    !> Function base_mlv_mlt_mv2
+  !! \memberof  psb_d_base_multivect_type
+  !! \brief computes A = transpose(X)*Y / conjugatetranspose(X)*Y
+  !! \param x    The class(base_mlv_vect) to be multiplied by
+  !! \param y    The class(base_mlv_vect) to be multiplied by
+  !! \param a    The resulting matrix
+  !! \param info   return code
+  subroutine z_base_mlv_mlt_mv2(n,x,y,a,info)
+    use psi_serial_mod
+    implicit none
+    integer(psb_ipk_), intent(in)                    :: n
+    class(psb_z_base_multivect_type), intent(inout)  :: x
+    class(psb_z_base_multivect_type), intent(inout)  :: y
+    complex(psb_dpk_), intent(inout), allocatable :: a(:,:)
+    integer(psb_ipk_), intent(out)              :: info
+
+    info = psb_success_
+    if (x%is_dev()) call x%sync()
+    if (y%is_dev()) call y%sync()
+    
+    if (allocated(a)) then
+      if (size(a,1) /= x%get_ncols()) then
+        info = psb_err_invalid_input_
+        return
+      end if
+      if (size(a,2) /= y%get_ncols()) then
+        info = psb_err_invalid_input_
+        return
+      end if
+    else
+      allocate(a(x%get_ncols(),y%get_ncols()),stat=info)
+      if (info /= 0) call psb_errpush(psb_err_alloc_dealloc_,'base_mlv_mlt_mv2')
+    end if
+    ! We do the multiplication by using the BLAS function
+    ! dgemm, which computes the matrix-matrix product
+    ! C = alpha*op( A )*op( B ) + beta*C
+    ! In our case, we want to compute
+    ! C = X'*Y  
+    call dgemm('C', 'N', x%get_ncols(), y%get_ncols(), n, zone, &
+      & x%v, x%get_nrows(), y%v, y%get_nrows(), zzero, a, x%get_ncols())
+
+  end subroutine z_base_mlv_mlt_mv2
 
   !
   !  Multiple variants of two operations:
