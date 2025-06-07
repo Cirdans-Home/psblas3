@@ -248,16 +248,16 @@ subroutine psb_dsgmres_vect(a,prec,b,x,eps,desc_a,info,&
   ! Sketching: preallocate a Rademacher matrix that we will use for sketching.
   ! To ensure an epsilon-embedding, we select it twice as large as the maximum 
   ! number of iterations before a restart.
-  t1 = psb_wtime()
+  ! t1 = psb_wtime()
   nsketch = min(2 * (nl + 1), mglob)
   korth = 1
   if (info == psb_success_) call psb_geall(SK,desc_a,info,n=nsketch)
   call psb_dsgmres_vect_gen_sketch(SK, desc_a)
-  t2 = psb_wtime() - t1
-  call psb_max(ctxt, t2)
-  if (me == psb_root_) then
-    print *, 'Generation of sketching time: ', t2
-  end if
+  ! t2 = psb_wtime() - t1
+  ! call psb_max(ctxt, t2)
+  ! if (me == psb_root_) then
+  !   print *, 'Generation of sketching time: ', t2
+  ! end if
   allocate(Sb(nsketch), SKAV(nsketch, nl), Sb2(nsketch), SKAV2(nsketch, nl), stat=info)
 
   if (info /= psb_success_) then 
@@ -391,13 +391,13 @@ subroutine psb_dsgmres_vect(a,prec,b,x,eps,desc_a,info,&
       call psb_spmm(done,a,w1,dzero,w,desc_a,info,work=aux)
       
       ! Sketch the action of the operator
-      t1 = psb_wtime()
+      ! t1 = psb_wtime()
       SKAV(:, i) = psb_gedot(SK, w, desc_a, info)
-      t2 = psb_wtime() - t1
-      call psb_max(ctxt, t2)
-      if (me == psb_root_) then
-        print *, 'Sketching time: ', t2
-      end if
+      ! t2 = psb_wtime() - t1
+      ! call psb_max(ctxt, t2)
+      ! if (me == psb_root_) then
+      !   print *, 'Sketching time: ', t2
+      ! end if
 
       ! Only partial reorthogonalization is done in the sketched variant
       do k = max(1, i - korth), i
